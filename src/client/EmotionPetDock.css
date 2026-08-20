@@ -1,0 +1,167 @@
+.emotionPet__dock {
+  box-sizing: border-box;
+  width: calc(
+    100% -
+    var(--dsh-composer-side-clearance) -
+    var(--dsh-composer-side-clearance) -
+    var(--dsh-composer-dock-inset) -
+    var(--dsh-composer-dock-inset)
+  );
+  max-width: calc(var(--dsh-composer-card-max-width) - 2 * var(--dsh-composer-dock-inset));
+  min-height: 82px;
+  margin: 0 auto -2px;
+}
+
+.emotionPet__row {
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+  min-height: 82px;
+}
+
+.emotionPet__button {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition: transform 160ms ease;
+}
+
+.emotionPet__button:hover {
+  transform: translateY(-2px);
+}
+
+.emotionPet__button:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+.emotionPet__button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.emotionPet__ball,
+.emotionPet__ball > svg {
+  display: block;
+  width: 82px;
+  height: 82px;
+}
+
+.emotionPet__bubble {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  max-width: min(430px, calc(100% - 76px));
+  margin: 0 0 13px -3px;
+  padding: 7px 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  align-items: center;
+  gap: 9px;
+}
+
+.emotionPet__bubble::before {
+  position: absolute;
+  left: -5px;
+  bottom: 12px;
+  width: 8px;
+  height: 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  border-left: 1px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-layer-1);
+  content: '';
+  transform: rotate(45deg);
+}
+
+.emotionPet__status {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.emotionPet__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary);
+}
+
+.emotionPet__dot[data-tone='working'] {
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.emotionPet__dot[data-tone='success'] {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.emotionPet__dot[data-tone='warning'] {
+  background: var(--dsw-alias-state-warn-primary);
+}
+
+.emotionPet__dot[data-tone='danger'] {
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.emotionPet__speech {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary-dimmed);
+  font-size: 12px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .emotionPet__dock {
+    width: calc(100% - 20px);
+    min-height: 72px;
+  }
+
+  .emotionPet__row {
+    min-height: 72px;
+  }
+
+  .emotionPet__button,
+  .emotionPet__ball,
+  .emotionPet__ball > svg {
+    width: 72px;
+    height: 72px;
+  }
+
+  .emotionPet__bubble {
+    max-width: calc(100% - 66px);
+    margin-bottom: 9px;
+    padding: 6px 9px;
+  }
+
+  .emotionPet__status {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emotionPet__button {
+    transition: none;
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "dsh-emotion-pet",
+  "version": "0.1.0",
+  "description": "Emotion Ball pet dock for the DeepSeek Harness Web composer",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "LICENSE-COMMERCIAL.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "verify": "pnpm run check && pnpm run test && pnpm run build",
+    "pack:plugin": "pnpm run verify && pnpm pack"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "~18.3.24",
+    "@types/react-dom": "~18.3.7",
+    "esbuild": "^0.25.9",
+    "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.15.0"
+}
