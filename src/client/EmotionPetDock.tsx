@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Cookie, Gamepad2, Moon, Sun } from 'lucide-react'
 import {
-  derivePetState, DONE_DURATION_MS, INTERACTION_DURATION_MS, PET_PRESENTATIONS,
+  derivePetState, DONE_DURATION_MS, IDLE_HIBERNATING_DURATION_MS,
+  IDLE_SPACING_DURATION_MS, IDLE_TIRED_DURATION_MS, INTERACTION_DURATION_MS,
+  MISSING_DURATION_MS, PET_PRESENTATIONS,
   type PetStateName,
 } from './pet-state.ts'
 import type { EmotionPetDockProps, PetSessionSnapshot } from './types.ts'
@@ -10,11 +12,21 @@ import './EmotionPetDock.css'
 // 注视范围针对 72~82px 宠物放大，确保待机巡视不会盖过鼠标方向。
 const GAZE_RANGE = { x: 48, y: 28 } as const
 // 没有增量内容时的阶段推进，避免长任务一直停在“接收任务”。
-const RECEIVING_PHASE_MS = 900
-const THINKING_PHASE_MS = 3500
-const SEARCHING_PHASE_MS = 6000
+const RECEIVING_PHASE_MS = 1800
+const THINKING_PHASE_MS = 4800
+const SEARCHING_PHASE_MS = 7500
 // 同一阶段轮换兼容表情的节奏，眼环动画仍由 Emotion Ball 引擎持续驱动。
 const EXPRESSION_CYCLE_MS = 3200
+const RECEIVING_EXPRESSION_CYCLE_MS = 800
+const WAKING_EXPRESSION_CYCLE_MS = 700
+const MISSING_EXPRESSION_CYCLE_MS = 900
+// 3 秒内连续点击 5 次会生气，投喂或玩耍后恢复。
+const ANGRY_CLICK_WINDOW_MS = 3000
+const ANGRY_CLICK_THRESHOLD = 5
+// 闲置计时的刷新间隔只影响状态响应速度，不影响动画帧率。
+const IDLE_TICK_MS = 500
+
+type TemporaryInteraction = 'happy' | 'satisfied' | 'playing' | 'waking'
 
 /** 情绪宠物在输入框上方的常驻展示。 */
 export function EmotionPetDock({ session }: EmotionPetDockProps) {
@@ -25,15 +37,28 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const previousRunningRef = useRef(session.running)
   const interactionTimerRef = useRef<number | null>(null)
   const doneTimerRef = useRef<number | null>(null)
+  const idleStartedAtRef = useRef(performance.now())
+  const clickTimestampsRef = useRef<number[]>([])
   const [interaction, setInteraction] = useState<PetStateName | null>(null)
   const [sleeping, setSleeping] = useState(false)
+  const [angry, setAngry] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const [runningElapsedMs, setRunningElapsedMs] = useState(0)
+  const [idleElapsedMs, setIdleElapsedMs] = useState(0)
   const [expressionIndex, setExpressionIndex] = useState(0)
+  const [expiredMissingKey, setExpiredMissingKey] = useState<string | null>(null)
 
   const liveState = useMemo(() => derivePetState(session), [session])
-  const progressingState = liveState.name === 'receiving' && session.running
+  const missingEventKey = `${session.promptError?.op ?? ''}|${session.lastAgentError ?? ''}|${
+    session.pending.map(item => item.kind).join(',')
+  }`
+  const contextualState = liveState.name === 'missing' && expiredMissingKey === missingEventKey
+    ? session.pending.some(item => item.kind === 'question')
+      ? PET_PRESENTATIONS.waiting
+      : PET_PRESENTATIONS.error
+    : liveState
+  const progressingState = contextualState.name === 'receiving' && session.running
     ? runningElapsedMs < RECEIVING_PHASE_MS
       ? PET_PRESENTATIONS.receiving
       : runningElapsedMs < THINKING_PHASE_MS
@@ -41,14 +66,29 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
         : runningElapsedMs < SEARCHING_PHASE_MS
           ? PET_PRESENTATIONS.searching
           : PET_PRESENTATIONS.busy
-    : liveState
-  const state = interaction !== null
-    ? PET_PRESENTATIONS[interaction]
-    : sleeping
-      ? PET_PRESENTATIONS.sleeping
-      : celebrating && progressingState.name === 'idle'
-        ? PET_PRESENTATIONS.done
-        : progressingState
+    : contextualState
+  const ambientState = progressingState.name === 'idle'
+    ? idleElapsedMs >= IDLE_HIBERNATING_DURATION_MS
+      ? PET_PRESENTATIONS.hibernating
+      : idleElapsedMs >= IDLE_TIRED_DURATION_MS
+        ? PET_PRESENTATIONS.tired
+        : idleElapsedMs >= IDLE_SPACING_DURATION_MS
+          ? PET_PRESENTATIONS.spacing
+          : progressingState
+    : progressingState
+  const forcedState = ambientState.name === 'restricted' || ambientState.name === 'stopped'
+    ? ambientState
+    : null
+  const state = forcedState
+    ?? (interaction !== null
+      ? PET_PRESENTATIONS[interaction]
+      : angry
+        ? PET_PRESENTATIONS.angry
+        : sleeping
+          ? PET_PRESENTATIONS.sleeping
+          : celebrating && ambientState.name === 'idle'
+            ? PET_PRESENTATIONS.done
+            : ambientState)
   const displayedEmotion = state.alternateEmotions?.[
     expressionIndex % state.alternateEmotions.length
   ] ?? state.emotion
@@ -107,12 +147,51 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   }, [session.running])
 
   useEffect(() => {
-    setExpressionIndex(0)
-    const variants = state.alternateEmotions
-    if (variants === undefined || variants.length < 2) return
+    if (liveState.name !== 'idle' || sleeping) {
+      setIdleElapsedMs(0)
+      return
+    }
+    idleStartedAtRef.current = performance.now()
+    setIdleElapsedMs(0)
     const timer = window.setInterval(() => {
-      setExpressionIndex(index => (index + 1) % variants.length)
-    }, EXPRESSION_CYCLE_MS)
+      setIdleElapsedMs(performance.now() - idleStartedAtRef.current)
+    }, IDLE_TICK_MS)
+    return () => { window.clearInterval(timer) }
+  }, [liveState.name, sleeping])
+
+  useEffect(() => {
+    if (liveState.name !== 'missing') {
+      setExpiredMissingKey(null)
+      return
+    }
+    if (expiredMissingKey === missingEventKey) return
+    const timer = window.setTimeout(() => {
+      setExpiredMissingKey(missingEventKey)
+    }, MISSING_DURATION_MS)
+    return () => { window.clearTimeout(timer) }
+  }, [expiredMissingKey, liveState.name, missingEventKey])
+
+  useEffect(() => {
+    const variants = state.alternateEmotions
+    const randomize = state.name === 'receiving'
+    setExpressionIndex(randomize && variants !== undefined
+      ? Math.floor(Math.random() * variants.length)
+      : 0)
+    if (variants === undefined || variants.length < 2) return
+    const cycleMs = state.name === 'receiving'
+      ? RECEIVING_EXPRESSION_CYCLE_MS
+      : state.name === 'waking'
+        ? WAKING_EXPRESSION_CYCLE_MS
+        : state.name === 'missing'
+          ? MISSING_EXPRESSION_CYCLE_MS
+          : EXPRESSION_CYCLE_MS
+    const timer = window.setInterval(() => {
+      setExpressionIndex(index => {
+        if (!randomize) return (index + 1) % variants.length
+        const offset = 1 + Math.floor(Math.random() * (variants.length - 1))
+        return (index + offset) % variants.length
+      })
+    }, cycleMs)
     return () => { window.clearInterval(timer) }
   }, [state.name, state.alternateEmotions])
 
@@ -158,7 +237,12 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     if (doneTimerRef.current !== null) window.clearTimeout(doneTimerRef.current)
   }, [])
 
-  const showTemporaryInteraction = (name: 'happy' | 'satisfied' | 'playing'): void => {
+  const resetIdleProgress = (): void => {
+    idleStartedAtRef.current = performance.now()
+    setIdleElapsedMs(0)
+  }
+
+  const showTemporaryInteraction = (name: TemporaryInteraction): void => {
     setInteraction(name)
     if (interactionTimerRef.current !== null) window.clearTimeout(interactionTimerRef.current)
     interactionTimerRef.current = window.setTimeout(() => {
@@ -167,31 +251,76 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     }, INTERACTION_DURATION_MS)
   }
 
+  const wakePet = (): void => {
+    setSleeping(false)
+    resetIdleProgress()
+    showTemporaryInteraction('waking')
+    engineRef.current?.bounce()
+  }
+
   const handlePat = (): void => {
+    if (sleeping || ambientState.name === 'hibernating') {
+      clickTimestampsRef.current = []
+      wakePet()
+      return
+    }
+
+    const now = performance.now()
+    clickTimestampsRef.current = clickTimestampsRef.current.filter(
+      timestamp => now - timestamp <= ANGRY_CLICK_WINDOW_MS,
+    )
+    clickTimestampsRef.current.push(now)
+    resetIdleProgress()
+
+    if (angry) {
+      engineRef.current?.bounce()
+      return
+    }
+    if (clickTimestampsRef.current.length >= ANGRY_CLICK_THRESHOLD) {
+      setAngry(true)
+      setInteraction(null)
+      if (interactionTimerRef.current !== null) {
+        window.clearTimeout(interactionTimerRef.current)
+        interactionTimerRef.current = null
+      }
+      engineRef.current?.burst(6)
+      return
+    }
     showTemporaryInteraction('happy')
     engineRef.current?.bounce()
   }
 
   const handleFeed = (): void => {
     setMenuOpen(false)
+    setAngry(false)
+    clickTimestampsRef.current = []
+    resetIdleProgress()
     showTemporaryInteraction('satisfied')
     engineRef.current?.burst(10)
   }
 
   const handlePlay = (): void => {
     setMenuOpen(false)
+    setAngry(false)
+    clickTimestampsRef.current = []
+    resetIdleProgress()
     showTemporaryInteraction('playing')
     engineRef.current?.spin(1)
   }
 
   const handleSleepToggle = (): void => {
     setMenuOpen(false)
+    if (sleeping || ambientState.name === 'hibernating') {
+      wakePet()
+      return
+    }
     setInteraction(null)
     if (interactionTimerRef.current !== null) {
       window.clearTimeout(interactionTimerRef.current)
       interactionTimerRef.current = null
     }
-    setSleeping(value => !value)
+    resetIdleProgress()
+    setSleeping(true)
   }
 
   const openMenu = (): void => {
@@ -231,10 +360,10 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
               玩耍
             </button>
             <button type="button" role="menuitem" onClick={handleSleepToggle}>
-              {sleeping
+              {sleeping || ambientState.name === 'hibernating'
                 ? <Sun size={16} aria-hidden="true" />
                 : <Moon size={16} aria-hidden="true" />}
-              {sleeping ? '唤醒' : '休息'}
+              {sleeping || ambientState.name === 'hibernating' ? '唤醒' : '休息'}
             </button>
           </div>
         )}

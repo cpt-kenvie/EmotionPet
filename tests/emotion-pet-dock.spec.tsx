@@ -2,7 +2,10 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EmotionPetDock } from '../src/client/EmotionPetDock.tsx'
-import { DONE_DURATION_MS } from '../src/client/pet-state.ts'
+import {
+  DONE_DURATION_MS, IDLE_HIBERNATING_DURATION_MS, IDLE_SPACING_DURATION_MS,
+  IDLE_TIRED_DURATION_MS, MISSING_DURATION_MS,
+} from '../src/client/pet-state.ts'
 import type { PetSessionSnapshot } from '../src/client/types.ts'
 
 const setEmotion = vi.fn(() => true)
@@ -19,6 +22,8 @@ function snapshot(overrides: Partial<PetSessionSnapshot> = {}): PetSessionSnapsh
     pending: [],
     running: false,
     lastAgentError: null,
+    promptError: null,
+    removed: false,
     ...overrides,
   }
 }
@@ -92,6 +97,64 @@ describe('EmotionPetDock', () => {
 
     fireEvent.contextMenu(pet)
     expect(screen.getByRole('menuitem', { name: '唤醒' })).toBeTruthy()
+
+    fireEvent.click(pet)
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('waking')
+    expect(setEmotion).toHaveBeenCalledWith('01', { auto: true })
+    act(() => { vi.advanceTimersByTime(700) })
+    expect(setEmotion).toHaveBeenCalledWith('05', { auto: true })
+  })
+
+  it('空闲时依次发呆、疲惫和休眠，点击后苏醒', () => {
+    const { container } = render(<EmotionPetDock session={snapshot()} input={{}} />)
+
+    act(() => { vi.advanceTimersByTime(IDLE_SPACING_DURATION_MS) })
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('spacing')
+
+    act(() => { vi.advanceTimersByTime(IDLE_TIRED_DURATION_MS - IDLE_SPACING_DURATION_MS) })
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('tired')
+
+    act(() => { vi.advanceTimersByTime(IDLE_HIBERNATING_DURATION_MS - IDLE_TIRED_DURATION_MS) })
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('hibernating')
+
+    fireEvent.click(screen.getByRole('button', { name: '摸摸情绪宠物' }))
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('waking')
+  })
+
+  it('连续点击会生气，投喂后恢复', () => {
+    const { container } = render(<EmotionPetDock session={snapshot()} input={{}} />)
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+
+    for (let index = 0; index < 5; index += 1) fireEvent.click(pet)
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('angry')
+
+    fireEvent.contextMenu(pet)
+    fireEvent.click(screen.getByRole('menuitem', { name: '投喂' }))
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('satisfied')
+  })
+
+  it('缺少信息时短暂慌张，然后等待用户补充', () => {
+    const { container } = render(<EmotionPetDock session={snapshot({
+      pending: [{ kind: 'question' }],
+    })} input={{}} />)
+
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('missing')
+    act(() => { vi.advanceTimersByTime(900) })
+    expect(setEmotion).toHaveBeenCalledWith('17', { auto: true })
+    act(() => { vi.advanceTimersByTime(MISSING_DURATION_MS - 900) })
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('waiting')
+  })
+
+  it('审批和终止使用专属表情', () => {
+    const { container, rerender } = render(<EmotionPetDock session={snapshot({
+      pending: [{ kind: 'approval' }],
+    })} input={{}} />)
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('restricted')
+    expect(setEmotion).toHaveBeenCalledWith('38', { auto: true })
+
+    rerender(<EmotionPetDock session={snapshot({ removed: true })} input={{}} />)
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('stopped')
+    expect(setEmotion).toHaveBeenCalledWith('41', { auto: true })
   })
 
   it('运行结束后短暂庆祝，再回到待机', () => {
@@ -111,14 +174,14 @@ describe('EmotionPetDock', () => {
     )
     expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('receiving')
 
-    act(() => { vi.advanceTimersByTime(1000) })
+    act(() => { vi.advanceTimersByTime(2000) })
     expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('thinking')
 
-    act(() => { vi.advanceTimersByTime(2800) })
+    act(() => { vi.advanceTimersByTime(3000) })
     expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('searching')
     expect(screen.getByText('检索资料')).toBeTruthy()
 
-    act(() => { vi.advanceTimersByTime(2500) })
+    act(() => { vi.advanceTimersByTime(2700) })
     expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('busy')
     expect(screen.getByText('编码执行')).toBeTruthy()
   })
