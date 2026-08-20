@@ -1,6 +1,6 @@
 # Emotion Pet for DeepSeek Harness
 
-一个住在 DeepSeek Harness Web 输入框左上方的 Emotion Ball 宠物。它根据当前 Agent 状态自动切换接收、思考、检索、工作、回复、等待确认、完成和错误表情；鼠标移动会引导视线，点击宠物会触发开心弹跳。
+一个住在 DeepSeek Harness Web 输入框左上方的 Emotion Ball 宠物。它根据当前 Agent 状态自动切换接收、思考、检索、编码、回复、等待确认、完成和错误表情，并在同一阶段轮换兼容表情；鼠标移动会引导视线，点击宠物会触发开心弹跳，右键菜单可投喂、玩耍、休息或唤醒。
 
 ## 安装
 

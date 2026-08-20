@@ -37,6 +37,9 @@
     "pack:plugin": "pnpm run verify && pnpm pack"
   },
   "license": "SEE LICENSE IN LICENSE",
+  "dependencies": {
+    "lucide-react": "^0.468.0"
+  },
   "devDependencies": {
     "@testing-library/react": "^16.3.0",
     "@types/react": "~18.3.24",

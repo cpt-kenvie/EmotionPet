@@ -3,6 +3,9 @@ import type { PetSessionSnapshot } from './types.ts'
 /** 任务结束庆祝状态的展示时长。 */
 export const DONE_DURATION_MS = 2400
 
+/** 投喂、玩耍和摸摸等临时互动的展示时长。 */
+export const INTERACTION_DURATION_MS = 2000
+
 /** 宠物可展示的 Agent 工作状态。 */
 export type PetStateName =
   | 'idle'
@@ -15,10 +18,14 @@ export type PetStateName =
   | 'done'
   | 'error'
   | 'happy'
+  | 'satisfied'
+  | 'playing'
+  | 'sleeping'
 
 export interface PetPresentation {
   readonly name: PetStateName
   readonly emotion: string
+  readonly alternateEmotions?: readonly string[]
   readonly label: string
   readonly speech: string
   readonly tone: 'neutral' | 'working' | 'success' | 'warning' | 'danger'
@@ -27,7 +34,7 @@ export interface PetPresentation {
 // 可调整文案和 Emotion Ball 表情统一放在这里，避免散落在渲染逻辑中。
 export const PET_PRESENTATIONS: Readonly<Record<PetStateName, PetPresentation>> = {
   idle: {
-    name: 'idle', emotion: '02', label: '随时待命', tone: 'neutral',
+    name: 'idle', emotion: '02', alternateEmotions: ['02', '03', '07'], label: '随时待命', tone: 'neutral',
     speech: '说说你想完成什么，我会陪你一步步推进。',
   },
   receiving: {
@@ -35,23 +42,23 @@ export const PET_PRESENTATIONS: Readonly<Record<PetStateName, PetPresentation>> 
     speech: '收到，我先看清上下文和目标。',
   },
   thinking: {
-    name: 'thinking', emotion: '30', label: '正在思考', tone: 'working',
+    name: 'thinking', emotion: '30', alternateEmotions: ['30', '37'], label: '正在思考', tone: 'working',
     speech: '我在梳理思路，马上给出清晰的方向。',
   },
   searching: {
-    name: 'searching', emotion: '40', label: '查找线索', tone: 'working',
+    name: 'searching', emotion: '40', alternateEmotions: ['40', '36'], label: '检索资料', tone: 'working',
     speech: '正在项目里寻找最有用的线索。',
   },
   busy: {
-    name: 'busy', emotion: '32', label: '专注工作', tone: 'working',
-    speech: '关键步骤正在推进，我会及时告诉你进展。',
+    name: 'busy', emotion: '32', alternateEmotions: ['32', '16'], label: '编码执行', tone: 'working',
+    speech: '正在实现关键步骤，我会及时告诉你进展。',
   },
   replying: {
-    name: 'replying', emotion: '39', label: '整理回复', tone: 'working',
+    name: 'replying', emotion: '39', alternateEmotions: ['39', '37'], label: '整理回复', tone: 'working',
     speech: '结果已经成形，我正在把它说明白。',
   },
   waiting: {
-    name: 'waiting', emotion: '35', label: '等你确认', tone: 'warning',
+    name: 'waiting', emotion: '35', alternateEmotions: ['35', '03'], label: '等你确认', tone: 'warning',
     speech: '这里需要你的决定，确认后我就继续。',
   },
   done: {
@@ -65,6 +72,18 @@ export const PET_PRESENTATIONS: Readonly<Record<PetStateName, PetPresentation>> 
   happy: {
     name: 'happy', emotion: '10', label: '心情很好', tone: 'success',
     speech: '收到摸摸啦，我会继续认真陪你。',
+  },
+  satisfied: {
+    name: 'satisfied', emotion: '19', label: '补充能量', tone: 'success',
+    speech: '谢谢投喂，能量已经补充好了。',
+  },
+  playing: {
+    name: 'playing', emotion: '10', label: '玩耍一下', tone: 'success',
+    speech: '转一圈放松一下，回来继续保持专注。',
+  },
+  sleeping: {
+    name: 'sleeping', emotion: '00', label: '正在休息', tone: 'neutral',
+    speech: '我先安静休息，需要时再把我叫醒。',
   },
 }
 

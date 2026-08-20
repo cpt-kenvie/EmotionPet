@@ -5,6 +5,8 @@ interface EmotionBallInstance {
   resetGaze(): EmotionBallInstance
   setActive(active: boolean): void
   bounce(): EmotionBallInstance
+  burst(count: number): EmotionBallInstance
+  spin(turns?: number, direction?: number): EmotionBallInstance
   destroy(): void
 }
 
@@ -15,6 +17,7 @@ interface EmotionBallApi {
       readonly emotion: string
       readonly shape: 'blob'
       readonly eyeScale: number
+      readonly gazeRange: { readonly x: number; readonly y: number }
       readonly idle: false
       readonly label: string
       readonly autostart: boolean

@@ -13,6 +13,7 @@
 }
 
 .emotionPet__row {
+  position: relative;
   display: flex;
   align-items: flex-end;
   min-width: 0;
@@ -55,6 +56,43 @@
   display: block;
   width: 82px;
   height: 82px;
+}
+
+.emotionPet__menu {
+  position: absolute;
+  z-index: 20;
+  left: 70px;
+  bottom: 54px;
+  display: grid;
+  width: 132px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: 0 8px 24px var(--dsw-alias-bg-mask-2);
+}
+
+.emotionPet__menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.emotionPet__menu button:hover,
+.emotionPet__menu button:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
 }
 
 .emotionPet__bubble {
@@ -153,6 +191,11 @@
     max-width: calc(100% - 66px);
     margin-bottom: 9px;
     padding: 6px 9px;
+  }
+
+  .emotionPet__menu {
+    left: 60px;
+    bottom: 48px;
   }
 
   .emotionPet__status {

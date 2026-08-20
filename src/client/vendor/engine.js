@@ -325,6 +325,8 @@
     this._seed = Math.random() * 100;
     this._events = {};
     this._gaze = { x: 0, y: 0, tx: 0, ty: 0 };
+    /* 注视范围可由宿主按组件尺寸调整，默认值保持原项目行为。 */
+    this._gazeRange = Object.assign({ x: 24, y: 15 }, opts.gazeRange || {});
     this._style = { sketch: 0 };
     this._theme = opts.color
       ? { body: opts.color, eyes: opts.eyeColor || '#FFFFFF' }
@@ -488,8 +490,8 @@
 
     /* 注视目标：横向 ±24、纵向 ±15（viewBox 坐标），幅度克制以保持含蓄 */
     setGaze: function (nx, ny) {
-      this._gaze.tx = clamp(nx, -1, 1) * 24;
-      this._gaze.ty = clamp(ny, -1, 1) * 15;
+      this._gaze.tx = clamp(nx, -1, 1) * this._gazeRange.x;
+      this._gaze.ty = clamp(ny, -1, 1) * this._gazeRange.y;
       return this;
     },
     clearGaze: function () {
