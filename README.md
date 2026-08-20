@@ -1,5 +1,9 @@
 # Emotion Pet for DeepSeek Harness
 
+[![Emotion Pet 效果预览](https://raw.githubusercontent.com/cpt-kenvie/EmotionPet/main/assets/emotion-pet-demo.gif)](https://github.com/cpt-kenvie/EmotionPet/blob/main/assets/emotion-pet-demo.mp4)
+
+> 点击预览可打开完整效果视频。
+
 Emotion Pet 是一个住在 DeepSeek Harness Web 输入框左上方的动态宠物插件。它完整集成了 Emotion Ball 的 32 个表情，会根据 Agent 当前状态展示接收任务、思考、检索、编码、回复、等待确认、完成和错误等表情，并通过视线、弹跳、自旋和彩带等动画陪伴任务过程。
 
 > 表情来源：[sam70361/emotion-ball](https://github.com/sam70361/emotion-ball)
@@ -63,7 +67,7 @@ dsh plugin --profile web update dsh-emotion-pet --latest
 更新后重启 Web Profile，并在浏览器中刷新页面：
 
 ```bash
-dsh --profile web
+dsh web
 ```
 
 如果浏览器仍显示旧版本，可使用 `Ctrl + F5` 强制刷新。
