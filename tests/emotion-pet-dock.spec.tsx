@@ -9,6 +9,7 @@ import {
 import type { PetSessionSnapshot } from '../src/client/types.ts'
 
 const setEmotion = vi.fn(() => true)
+const setTheme = vi.fn()
 const setGaze = vi.fn()
 const bounce = vi.fn()
 const burst = vi.fn()
@@ -39,6 +40,7 @@ beforeEach(() => {
     create: vi.fn(() => ({
       emotionId: '02',
       setEmotion,
+      setTheme,
       setGaze,
       resetGaze: vi.fn(),
       setActive: vi.fn(),
@@ -131,8 +133,9 @@ describe('EmotionPetDock', () => {
     expect(window.localStorage.getItem('dsh-emotion-pet.color')).toBe('#F2A7A0')
     expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
       expect.any(HTMLElement),
-      expect.objectContaining({ color: '#F2A7A0', eyeColor: '#1A1A1A' }),
+      expect.objectContaining({ shape: 'wedge' }),
     )
+    expect(setTheme).toHaveBeenLastCalledWith('#F2A7A0', '#1A1A1A')
     expect(followEmotion.getAttribute('aria-checked')).toBe('true')
 
     fireEvent.click(followEmotion)
@@ -141,32 +144,74 @@ describe('EmotionPetDock', () => {
     expect(followEmotion.getAttribute('aria-checked')).toBe('false')
   })
 
-  it('跟随表情仅允许 21 和 34 使用原始颜色', () => {
+  it('跟随表情允许 21 使用原始颜色且不重建动画实例', () => {
     const { container } = render(<EmotionPetDock session={snapshot()} input={{}} />)
     const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
 
     fireEvent.contextMenu(pet)
     fireEvent.click(screen.getByRole('menuitem', { name: '外观' }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: '珊瑚红' }))
-    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
-      expect.any(HTMLElement),
-      expect.objectContaining({ emotion: '02', color: '#F2A7A0' }),
-    )
+    expect(setTheme).toHaveBeenLastCalledWith('#F2A7A0', '#1A1A1A')
+    const createCallCount = vi.mocked(window.EmotionBall.create).mock.calls.length
 
     for (let index = 0; index < 5; index += 1) fireEvent.click(pet)
     expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('angry')
-    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
-      expect.any(HTMLElement),
-      expect.not.objectContaining({ color: expect.any(String) }),
-    )
+    expect(setTheme).toHaveBeenLastCalledWith(null, '#1A1A1A')
+    expect(window.EmotionBall.create).toHaveBeenCalledTimes(createCallCount)
 
     fireEvent.contextMenu(pet)
     fireEvent.click(screen.getByRole('menuitem', { name: '外观' }))
     fireEvent.click(screen.getByRole('menuitemcheckbox', { name: '跟随表情' }))
-    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
+    expect(setTheme).toHaveBeenLastCalledWith('#F2A7A0', '#1A1A1A')
+  })
+
+  it('跟随表情允许 34 使用原始错误配色', () => {
+    window.localStorage.setItem('dsh-emotion-pet.color', '#F2A7A0')
+    render(<EmotionPetDock session={snapshot({ lastAgentError: '测试错误' })} input={{}} />)
+
+    expect(setTheme).toHaveBeenLastCalledWith(null, '#1A1A1A')
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+    fireEvent.contextMenu(pet)
+    fireEvent.click(screen.getByRole('menuitem', { name: '外观' }))
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: '跟随表情' }))
+    expect(setTheme).toHaveBeenLastCalledWith('#F2A7A0', '#1A1A1A')
+  })
+
+  it('退出二级菜单时逐级关闭并恢复焦点', () => {
+    render(<EmotionPetDock session={snapshot()} input={{}} />)
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+
+    fireEvent.contextMenu(pet)
+    const appearance = screen.getByRole('menuitem', { name: '外观' })
+    fireEvent.click(appearance)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu', { name: '宠物外观' })).toBeNull()
+    expect(document.activeElement).toBe(appearance)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu', { name: '宠物互动' })).toBeNull()
+    expect(document.activeElement).toBe(pet)
+  })
+
+  it('重新挂载后恢复已保存的外观设置', () => {
+    window.localStorage.setItem('dsh-emotion-pet.shape', 'gem')
+    window.localStorage.setItem('dsh-emotion-pet.color', '#78A9DC')
+    window.localStorage.setItem('dsh-emotion-pet.followEmotion', 'false')
+
+    render(<EmotionPetDock session={snapshot()} input={{}} />)
+    expect(window.EmotionBall.create).toHaveBeenCalledWith(
       expect.any(HTMLElement),
-      expect.objectContaining({ emotion: '21', color: '#F2A7A0' }),
+      expect.objectContaining({ shape: 'gem' }),
     )
+    expect(setTheme).toHaveBeenLastCalledWith('#78A9DC', '#1A1A1A')
+
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+    fireEvent.contextMenu(pet)
+    fireEvent.click(screen.getByRole('menuitem', { name: '外观' }))
+    expect(screen.getByRole('menuitemcheckbox', { name: '跟随表情' })
+      .getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByRole('menuitemradio', { name: '晴空蓝' })
+      .getAttribute('aria-checked')).toBe('true')
   })
 
   it('空闲时依次发呆、疲惫和休眠，点击后苏醒', () => {

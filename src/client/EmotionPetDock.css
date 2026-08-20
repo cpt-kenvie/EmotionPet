@@ -118,6 +118,7 @@
   left: calc(100% + 5px);
   bottom: 0;
   display: grid;
+  box-sizing: border-box;
   width: 166px;
   padding: 4px;
   border: 1px solid var(--dsw-alias-border-l1);

@@ -1,6 +1,7 @@
 interface EmotionBallInstance {
   readonly emotionId: string | null
   setEmotion(id: string, options?: { readonly auto?: boolean }): boolean
+  setTheme(color: string | null, eyeColor?: string): EmotionBallInstance
   setGaze(x: number, y: number): EmotionBallInstance
   resetGaze(): EmotionBallInstance
   setActive(active: boolean): void

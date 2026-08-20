@@ -504,6 +504,14 @@
       if (!this._active) this.renderStatic();
       return this;
     },
+    /* 运行时切换主题色，避免宿主为跟随表情颜色而销毁并重建动画实例。 */
+    setTheme: function (color, eyeColor) {
+      this._theme = color
+        ? { body: color, eyes: eyeColor || '#FFFFFF' }
+        : null;
+      if (!this._active) this.renderStatic();
+      return this;
+    },
 
     /* 自旋（点击交互）：弹簧追整数圈，达速后由渲染层甩出彩带；
      * 进行中的自旋不可打断，追加请求直接忽略 */

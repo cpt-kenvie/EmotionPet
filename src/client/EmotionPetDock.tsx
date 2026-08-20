@@ -188,7 +188,6 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     const engine = window.EmotionBall.create(host, {
       emotion: displayedEmotion,
       shape: petShape,
-      ...(useEmotionColor ? {} : { color: petColor, eyeColor: '#1A1A1A' }),
       eyeScale: 1.08,
       gazeRange: GAZE_RANGE,
       idle: false,
@@ -215,6 +214,10 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       engine.destroy()
       engineRef.current = null
     }
+  }, [petShape])
+
+  useEffect(() => {
+    engineRef.current?.setTheme(useEmotionColor ? null : petColor, '#1A1A1A')
   }, [petColor, petShape, useEmotionColor])
 
   useEffect(() => {
@@ -500,7 +503,6 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
                 aria-haspopup="menu"
                 aria-expanded={appearanceOpen}
                 onClick={() => { setAppearanceOpen(true) }}
-                onFocus={() => { setAppearanceOpen(true) }}
                 onKeyDown={(event) => {
                   if (event.key === 'ArrowRight') setAppearanceOpen(true)
                 }}
