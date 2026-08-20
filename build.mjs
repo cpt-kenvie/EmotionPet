@@ -65,7 +65,7 @@ const wrappedClient = `window.__ModuleLoader__.load({
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
-${bundledClient.text.split('\n').map(line => `    ${line}`).join('\n')}
+${bundledClient.text.split('\n').map(line => line === '' ? '' : `    ${line}`).join('\n')}
     return module.exports;
   }
 });

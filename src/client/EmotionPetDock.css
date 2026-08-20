@@ -72,7 +72,8 @@
   box-shadow: 0 8px 24px var(--dsw-alias-bg-mask-2);
 }
 
-.emotionPet__menu button {
+.emotionPet__menu > button,
+.emotionPet__submenuTrigger {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -89,10 +90,186 @@
   cursor: pointer;
 }
 
-.emotionPet__menu button:hover,
-.emotionPet__menu button:focus-visible {
+.emotionPet__menu > button:hover,
+.emotionPet__menu > button:focus-visible,
+.emotionPet__submenuTrigger:hover,
+.emotionPet__submenuTrigger:focus-visible {
   background: var(--dsw-alias-interactive-bg-hover);
   outline: none;
+}
+
+.emotionPet__menuDivider {
+  height: 1px;
+  margin: 4px 5px;
+  background: var(--dsw-alias-border-l1);
+}
+
+.emotionPet__submenuHost {
+  position: relative;
+}
+
+.emotionPet__appearanceChevron {
+  margin-left: auto;
+}
+
+.emotionPet__appearancePanel {
+  position: absolute;
+  z-index: 1;
+  left: calc(100% + 5px);
+  bottom: 0;
+  display: grid;
+  width: 166px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: 0 8px 24px var(--dsw-alias-bg-mask-2);
+}
+
+/* 填补主菜单与二级菜单之间的悬停间隙，避免移动指针时菜单意外关闭。 */
+.emotionPet__appearancePanel::before {
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 6px;
+  height: 100%;
+  content: '';
+}
+
+.emotionPet__menu .emotionPet__followToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 34px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.emotionPet__menu .emotionPet__followToggle:hover,
+.emotionPet__menu .emotionPet__followToggle:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.emotionPet__switch {
+  position: relative;
+  box-sizing: border-box;
+  width: 28px;
+  height: 16px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.emotionPet__switch::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary);
+  content: '';
+  transition: transform 160ms ease;
+}
+
+.emotionPet__switch[data-checked='true'] {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.emotionPet__switch[data-checked='true']::after {
+  background: var(--dsw-alias-bg-layer-2);
+  transform: translateX(12px);
+}
+
+.emotionPet__menuSection {
+  display: grid;
+  gap: 5px;
+  padding: 4px 5px 6px;
+}
+
+.emotionPet__menuLabel {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.emotionPet__shapeOptions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.emotionPet__menu .emotionPet__shapeOption {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.emotionPet__menu .emotionPet__shapeOption:hover,
+.emotionPet__menu .emotionPet__shapeOption:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.emotionPet__menu .emotionPet__shapeOption[aria-checked='true'] {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.emotionPet__colorOptions {
+  display: grid;
+  grid-template-columns: repeat(4, 26px);
+  gap: 7px;
+}
+
+.emotionPet__menu .emotionPet__colorOption,
+.emotionPet__customColor {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--dsw-alias-bg-layer-2);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--dsw-alias-border-l1);
+  cursor: pointer;
+}
+
+.emotionPet__menu .emotionPet__colorOption:focus-visible,
+.emotionPet__customColor:focus-within {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.emotionPet__menu .emotionPet__colorOption[aria-checked='true'],
+.emotionPet__customColor[data-selected='true'] {
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
+}
+
+.emotionPet__customColor input {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
 }
 
 .emotionPet__bubble {
@@ -203,8 +380,15 @@
   }
 }
 
+@media (max-width: 400px) {
+  .emotionPet__menu {
+    left: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .emotionPet__button {
+  .emotionPet__button,
+  .emotionPet__switch::after {
     transition: none;
   }
 }

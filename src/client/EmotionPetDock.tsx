@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Cookie, Gamepad2, Moon, Sun } from 'lucide-react'
+import {
+  ChevronRight, Circle, Cookie, Diamond, Gamepad2, Moon, Palette, Sun, Triangle,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   derivePetState, DONE_DURATION_MS, IDLE_HIBERNATING_DURATION_MS,
   IDLE_SPACING_DURATION_MS, IDLE_TIRED_DURATION_MS, INTERACTION_DURATION_MS,
@@ -25,14 +28,93 @@ const ANGRY_CLICK_WINDOW_MS = 3000
 const ANGRY_CLICK_THRESHOLD = 5
 // 闲置计时的刷新间隔只影响状态响应速度，不影响动画帧率。
 const IDLE_TICK_MS = 500
+// 宠物外观设置保存在浏览器本地，不写入会话或服务端配置。
+const SHAPE_STORAGE_KEY = 'dsh-emotion-pet.shape'
+const COLOR_STORAGE_KEY = 'dsh-emotion-pet.color'
+const FOLLOW_EMOTION_STORAGE_KEY = 'dsh-emotion-pet.followEmotion'
+// 未保存颜色时沿用 Emotion Ball 的默认体色。
+const DEFAULT_PET_COLOR = '#F3F0EA'
+// 仅这些表情需要临时覆盖用户选择的基础颜色。
+const FOLLOW_EMOTION_IDS = new Set(['21', '34'])
+
+type PetShape = 'blob' | 'wedge' | 'gem'
+
+interface PetShapeOption {
+  readonly value: PetShape
+  readonly label: string
+  readonly icon: LucideIcon
+}
+
+interface PetColorOption {
+  readonly value: string
+  readonly label: string
+}
+
+const PET_SHAPES: readonly PetShapeOption[] = [
+  { value: 'blob', label: '圆润', icon: Circle },
+  { value: 'wedge', label: '三角', icon: Triangle },
+  { value: 'gem', label: '宝石', icon: Diamond },
+]
+
+const PET_COLORS: readonly PetColorOption[] = [
+  { value: '#F3F0EA', label: '云朵白' },
+  { value: '#F2A7A0', label: '珊瑚红' },
+  { value: '#F0C75E', label: '暖阳黄' },
+  { value: '#78BE95', label: '薄荷绿' },
+  { value: '#78A9DC', label: '晴空蓝' },
+  { value: '#A995D1', label: '鸢尾紫' },
+]
 
 type TemporaryInteraction = 'happy' | 'satisfied' | 'playing' | 'waking'
+
+function isPetShape(value: string | null): value is PetShape {
+  return value === 'blob' || value === 'wedge' || value === 'gem'
+}
+
+function readStoredShape(): PetShape {
+  try {
+    const value = window.localStorage.getItem(SHAPE_STORAGE_KEY)
+    return isPetShape(value) ? value : 'blob'
+  } catch {
+    // 浏览器禁用本地存储时保留默认外观，不影响宠物加载。
+    return 'blob'
+  }
+}
+
+function readStoredColor(): string {
+  try {
+    const value = window.localStorage.getItem(COLOR_STORAGE_KEY)
+    return value !== null && /^#[0-9a-f]{6}$/i.test(value) ? value : DEFAULT_PET_COLOR
+  } catch {
+    // 浏览器禁用本地存储时使用默认体色。
+    return DEFAULT_PET_COLOR
+  }
+}
+
+function readStoredFollowEmotion(): boolean {
+  try {
+    return window.localStorage.getItem(FOLLOW_EMOTION_STORAGE_KEY) !== 'false'
+  } catch {
+    // 无法读取本地存储时默认保留特殊表情的原始颜色。
+    return true
+  }
+}
+
+function storeAppearance(key: string, value: string | null): void {
+  try {
+    if (value === null) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, value)
+  } catch {
+    // 存储配额或隐私设置拒绝写入时，本次页面内选择仍然有效。
+  }
+}
 
 /** 情绪宠物在输入框上方的常驻展示。 */
 export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const ballHostRef = useRef<HTMLDivElement>(null)
   const petButtonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const appearanceButtonRef = useRef<HTMLButtonElement>(null)
   const engineRef = useRef<EmotionBallInstance | null>(null)
   const previousRunningRef = useRef(session.running)
   const interactionTimerRef = useRef<number | null>(null)
@@ -43,11 +125,15 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const [sleeping, setSleeping] = useState(false)
   const [angry, setAngry] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [appearanceOpen, setAppearanceOpen] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const [runningElapsedMs, setRunningElapsedMs] = useState(0)
   const [idleElapsedMs, setIdleElapsedMs] = useState(0)
   const [expressionIndex, setExpressionIndex] = useState(0)
   const [expiredMissingKey, setExpiredMissingKey] = useState<string | null>(null)
+  const [petShape, setPetShape] = useState<PetShape>(readStoredShape)
+  const [petColor, setPetColor] = useState(readStoredColor)
+  const [followEmotion, setFollowEmotion] = useState(readStoredFollowEmotion)
 
   const liveState = useMemo(() => derivePetState(session), [session])
   const missingEventKey = `${session.promptError?.op ?? ''}|${session.lastAgentError ?? ''}|${
@@ -92,6 +178,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const displayedEmotion = state.alternateEmotions?.[
     expressionIndex % state.alternateEmotions.length
   ] ?? state.emotion
+  const useEmotionColor = followEmotion && FOLLOW_EMOTION_IDS.has(displayedEmotion)
 
   useEffect(() => {
     const host = ballHostRef.current
@@ -100,7 +187,8 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const engine = window.EmotionBall.create(host, {
       emotion: displayedEmotion,
-      shape: 'blob',
+      shape: petShape,
+      ...(useEmotionColor ? {} : { color: petColor, eyeColor: '#1A1A1A' }),
       eyeScale: 1.08,
       gazeRange: GAZE_RANGE,
       idle: false,
@@ -127,7 +215,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       engine.destroy()
       engineRef.current = null
     }
-  }, [])
+  }, [petColor, petShape, useEmotionColor])
 
   useEffect(() => {
     engineRef.current?.setEmotion(displayedEmotion, { auto: true })
@@ -203,7 +291,14 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       setMenuOpen(false)
     }
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key !== 'Escape') return
+      if (appearanceOpen) {
+        setAppearanceOpen(false)
+        appearanceButtonRef.current?.focus()
+        return
+      }
+      setMenuOpen(false)
+      petButtonRef.current?.focus()
     }
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
@@ -211,7 +306,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [menuOpen])
+  }, [appearanceOpen, menuOpen])
 
   useEffect(() => {
     const wasRunning = previousRunningRef.current
@@ -324,7 +419,26 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   }
 
   const openMenu = (): void => {
+    setAppearanceOpen(false)
     setMenuOpen(true)
+  }
+
+  const handleShapeChange = (shape: PetShape): void => {
+    setPetShape(shape)
+    storeAppearance(SHAPE_STORAGE_KEY, shape)
+  }
+
+  const handleColorChange = (color: string): void => {
+    setPetColor(color)
+    storeAppearance(COLOR_STORAGE_KEY, color)
+  }
+
+  const handleFollowEmotionToggle = (): void => {
+    setFollowEmotion(current => {
+      const next = !current
+      storeAppearance(FOLLOW_EMOTION_STORAGE_KEY, String(next))
+      return next
+    })
   }
 
   return (
@@ -365,6 +479,117 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
                 : <Moon size={16} aria-hidden="true" />}
               {sleeping || ambientState.name === 'hibernating' ? '唤醒' : '休息'}
             </button>
+            <div className="emotionPet__menuDivider" aria-hidden="true" />
+            <div
+              className="emotionPet__submenuHost"
+              role="none"
+              onPointerEnter={() => { setAppearanceOpen(true) }}
+              onPointerLeave={(event) => {
+                if (!event.currentTarget.contains(document.activeElement)) setAppearanceOpen(false)
+              }}
+              onBlur={(event) => {
+                if (!(event.relatedTarget instanceof Node)
+                  || !event.currentTarget.contains(event.relatedTarget)) setAppearanceOpen(false)
+              }}
+            >
+              <button
+                ref={appearanceButtonRef}
+                type="button"
+                className="emotionPet__submenuTrigger"
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={appearanceOpen}
+                onClick={() => { setAppearanceOpen(true) }}
+                onFocus={() => { setAppearanceOpen(true) }}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowRight') setAppearanceOpen(true)
+                }}
+              >
+                <Palette size={16} aria-hidden="true" />
+                外观
+                <ChevronRight size={14} className="emotionPet__appearanceChevron" aria-hidden="true" />
+              </button>
+              {appearanceOpen && (
+                <div
+                  className="emotionPet__appearancePanel"
+                  role="menu"
+                  aria-label="宠物外观"
+                  onKeyDown={(event) => {
+                    if (event.key !== 'ArrowLeft') return
+                    event.preventDefault()
+                    setAppearanceOpen(false)
+                    appearanceButtonRef.current?.focus()
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="emotionPet__followToggle"
+                    role="menuitemcheckbox"
+                    aria-checked={followEmotion}
+                    onClick={handleFollowEmotionToggle}
+                  >
+                    跟随表情
+                    <span
+                      className="emotionPet__switch"
+                      data-checked={followEmotion}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <div className="emotionPet__menuSection" role="group" aria-label="宠物形状">
+                    <span className="emotionPet__menuLabel">形状</span>
+                    <div className="emotionPet__shapeOptions">
+                      {PET_SHAPES.map(option => {
+                        const ShapeIcon = option.icon
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className="emotionPet__shapeOption"
+                            role="menuitemradio"
+                            aria-checked={petShape === option.value}
+                            aria-label={option.label}
+                            title={option.label}
+                            onClick={() => { handleShapeChange(option.value) }}
+                          >
+                            <ShapeIcon size={16} aria-hidden="true" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className="emotionPet__menuSection" role="group" aria-label="宠物颜色">
+                    <span className="emotionPet__menuLabel">颜色</span>
+                    <div className="emotionPet__colorOptions">
+                      {PET_COLORS.map(option => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className="emotionPet__colorOption"
+                          role="menuitemradio"
+                          aria-checked={petColor.toUpperCase() === option.value}
+                          aria-label={option.label}
+                          title={option.label}
+                          style={{ backgroundColor: option.value }}
+                          onClick={() => { handleColorChange(option.value) }}
+                        />
+                      ))}
+                      <label
+                        className="emotionPet__customColor"
+                        data-selected={!PET_COLORS.some(option => option.value === petColor.toUpperCase())}
+                        title="自定义颜色"
+                      >
+                        <input
+                          type="color"
+                          value={petColor}
+                          aria-label="自定义颜色"
+                          onChange={(event) => { handleColorChange(event.target.value.toUpperCase()) }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
         <div className="emotionPet__bubble" aria-live="polite" aria-atomic="true">

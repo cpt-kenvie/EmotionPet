@@ -15,7 +15,9 @@ interface EmotionBallApi {
     target: HTMLElement,
     options: {
       readonly emotion: string
-      readonly shape: 'blob'
+      readonly shape: 'blob' | 'wedge' | 'gem'
+      readonly color?: string
+      readonly eyeColor?: string
       readonly eyeScale: number
       readonly gazeRange: { readonly x: number; readonly y: number }
       readonly idle: false

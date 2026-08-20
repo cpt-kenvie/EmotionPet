@@ -30,6 +30,7 @@ function snapshot(overrides: Partial<PetSessionSnapshot> = {}): PetSessionSnapsh
 
 beforeEach(() => {
   vi.useFakeTimers()
+  window.localStorage.clear()
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     value: () => ({ matches: false }),
@@ -103,6 +104,69 @@ describe('EmotionPetDock', () => {
     expect(setEmotion).toHaveBeenCalledWith('01', { auto: true })
     act(() => { vi.advanceTimersByTime(700) })
     expect(setEmotion).toHaveBeenCalledWith('05', { auto: true })
+  })
+
+  it('右键菜单支持切换形状和颜色并保存设置', () => {
+    render(<EmotionPetDock session={snapshot()} input={{}} />)
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+
+    fireEvent.contextMenu(pet)
+    expect(screen.queryByRole('menuitemradio', { name: '三角' })).toBeNull()
+    expect(screen.queryByRole('menu', { name: '宠物外观' })).toBeNull()
+    const appearance = screen.getByRole('menuitem', { name: '外观' })
+    expect(appearance.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(appearance)
+    expect(appearance.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('menu', { name: '宠物外观' })).toBeTruthy()
+    const followEmotion = screen.getByRole('menuitemcheckbox', { name: '跟随表情' })
+    expect(followEmotion.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '三角' }))
+    expect(window.localStorage.getItem('dsh-emotion-pet.shape')).toBe('wedge')
+    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ shape: 'wedge' }),
+    )
+
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '珊瑚红' }))
+    expect(window.localStorage.getItem('dsh-emotion-pet.color')).toBe('#F2A7A0')
+    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ color: '#F2A7A0', eyeColor: '#1A1A1A' }),
+    )
+    expect(followEmotion.getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(followEmotion)
+    expect(window.localStorage.getItem('dsh-emotion-pet.followEmotion')).toBe('false')
+    expect(window.localStorage.getItem('dsh-emotion-pet.color')).toBe('#F2A7A0')
+    expect(followEmotion.getAttribute('aria-checked')).toBe('false')
+  })
+
+  it('跟随表情仅允许 21 和 34 使用原始颜色', () => {
+    const { container } = render(<EmotionPetDock session={snapshot()} input={{}} />)
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+
+    fireEvent.contextMenu(pet)
+    fireEvent.click(screen.getByRole('menuitem', { name: '外观' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '珊瑚红' }))
+    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ emotion: '02', color: '#F2A7A0' }),
+    )
+
+    for (let index = 0; index < 5; index += 1) fireEvent.click(pet)
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('angry')
+    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.not.objectContaining({ color: expect.any(String) }),
+    )
+
+    fireEvent.contextMenu(pet)
+    fireEvent.click(screen.getByRole('menuitem', { name: '外观' }))
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: '跟随表情' }))
+    expect(window.EmotionBall.create).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ emotion: '21', color: '#F2A7A0' }),
+    )
   })
 
   it('空闲时依次发呆、疲惫和休眠，点击后苏醒', () => {
