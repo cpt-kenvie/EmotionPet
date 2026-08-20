@@ -4,7 +4,8 @@
   "description": "Emotion Ball pet dock for the DeepSeek Harness Web composer",
   "type": "module",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "main": "lib/index.js",
   "exports": {

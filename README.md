@@ -66,17 +66,17 @@ pnpm dsh plugin --profile web remove dsh-emotion-pet
 
 ```bash
 cd C:/Users/admin/Desktop/emotionPet
-npm login
-npm whoami
+npm login --registry=https://registry.npmjs.org/
+npm whoami --registry=https://registry.npmjs.org/
 pnpm run verify
-npm publish --access public
+npm publish --access public --registry=https://registry.npmjs.org/
 ```
 
 以后修改代码时先递增版本号，再发布：
 
 ```bash
 npm version patch --no-git-tag-version
-npm publish --access public
+npm publish --access public --registry=https://registry.npmjs.org/
 ```
 
 `prepublishOnly` 会在发布前自动执行类型检查、测试和构建；npm 包只包含构建后的 `lib/`、Bundle patch、README 和许可证，不包含源码或 `node_modules/`。
