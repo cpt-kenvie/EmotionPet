@@ -1,96 +1,95 @@
 # Emotion Pet for DeepSeek Harness
 
-一个住在 DeepSeek Harness Web 输入框左上方的 Emotion Ball 宠物。它根据当前 Agent 状态自动切换接收、思考、检索、编码、回复、等待确认、完成和错误表情，并在同一阶段轮换兼容表情；鼠标移动会引导视线，点击宠物会触发开心弹跳，右键菜单可投喂、玩耍、休息或唤醒。
+Emotion Pet 是一个住在 DeepSeek Harness Web 输入框左上方的动态宠物插件。它会根据 Agent 当前状态展示接收任务、思考、检索、编码、回复、等待确认、完成和错误等表情，并通过视线、弹跳、自旋和彩带等动画陪伴任务过程。
+
+> 表情来源：[sam70361/emotion-ball](https://github.com/sam70361/emotion-ball)
+
+本插件采用了 Emotion Ball 的 SVG 表情、表情配置和动画引擎，并针对 DeepSeek Harness 的会话状态与输入区域进行了集成。
+
+## 功能
+
+- 根据 Agent 状态自动切换接收、思考、检索、编码、回复、等待、完成和错误表情
+- 同一工作阶段自动轮换兼容表情，避免长时间保持同一姿态
+- 眼睛跟随鼠标位置，并保留眨眼、呼吸、巡视等待机动画
+- 左键点击宠物进行摸摸互动
+- 右键打开互动菜单，可选择投喂、玩耍、休息或唤醒
+- 休息状态会在新任务开始时自动结束
+- 支持明暗主题、窄屏布局、键盘菜单和减少动态效果设置
+
+## 使用前提
+
+- 已安装 DeepSeek Harness
+- 可以在终端中使用 `dsh` 命令
+- 使用包含 Web 界面的 Profile，例如默认的 `web`
 
 ## 安装
 
-### 用户从 npm 安装
-
-用户不需要这个项目的源码。安装已发布的 npm 包即可：
+将插件安装到默认 Web Profile：
 
 ```bash
 dsh plugin --profile web add dsh-emotion-pet
+```
+
+启动 DeepSeek Harness Web：
+
+```bash
 dsh --profile web
 ```
 
-升级到最新版本：
+终端显示 `dsh web:` 地址后，在浏览器中打开该地址。宠物会出现在会话输入框正上方。
+
+## 互动方式
+
+- **移动鼠标**：宠物视线会跟随指针
+- **左键点击宠物**：摸摸宠物并触发开心弹跳
+- **右键点击宠物**：打开投喂、玩耍和休息菜单
+- **Shift + F10**：使用键盘打开宠物菜单
+- **投喂**：补充能量并触发彩带效果
+- **玩耍**：触发旋转和开心表情
+- **休息**：保持睡眠状态，右键可手动唤醒；开始新任务时也会自动醒来
+
+## 更新
+
+更新到 npm 上的最新版本：
 
 ```bash
 dsh plugin --profile web update dsh-emotion-pet --latest
+```
+
+更新后重启 Web Profile，并在浏览器中刷新页面：
+
+```bash
 dsh --profile web
 ```
 
-如果本机使用的是源码启动方式，把 `dsh` 替换为 `pnpm dsh`。
+如果浏览器仍显示旧版本，可使用 `Ctrl + F5` 强制刷新。
 
-先在插件目录完成构建：
-
-```bash
-cd C:/Users/admin/Desktop/emotionPet
-pnpm install
-pnpm run verify
-```
-
-将插件安装到要使用的 Harness Web Profile，例如默认 `web`：
+## 卸载
 
 ```bash
-cd D:/Projects/deepseek-harness
-pnpm dsh plugin --profile web add "C:/Users/admin/Desktop/emotionPet"
+dsh plugin --profile web remove dsh-emotion-pet
 ```
 
-重启该 Profile 后生效：
+重启对应 Profile 后，插件会从 Web 界面移除。
+
+## 常见问题
+
+### 安装后没有看到宠物
+
+确认插件已经加入当前 Profile：
 
 ```bash
-pnpm dsh --profile web --no-open
+dsh --profile web --dump-config
 ```
 
-终端打印 `dsh web:` 地址后，在浏览器中打开即可。插件位于会话输入框正上方，空白的新会话也会显示。
+输出中应包含 `dsh-emotion-pet`。然后重启 Profile，并强制刷新浏览器页面。
 
-## 更新与卸载
+### 页面地址暂时无法访问
 
-修改源码后重新运行 `pnpm run verify`，然后重启 Harness Web。若安装方式生成的是副本而不是本地链接，可移除后重新添加：
+首次冷启动可能需要一些时间。保持启动命令所在的终端窗口开启，等待服务完成初始化后再次刷新终端显示的 `dsh web:` 地址。
 
-```bash
-pnpm dsh plugin --profile web remove dsh-emotion-pet
-pnpm dsh plugin --profile web add "C:/Users/admin/Desktop/emotionPet"
-```
+## 表情来源与许可
 
-仅卸载：
+本插件的表情、表情配置数据和 SVG 动画引擎来自 [sam70361/emotion-ball](https://github.com/sam70361/emotion-ball)，原项目版权归 `sam70361` 所有。
 
-```bash
-pnpm dsh plugin --profile web remove dsh-emotion-pet
-```
-
-### 发布者流程
-
-需要一个 npm 账号。首次发布前执行：
-
-```bash
-cd C:/Users/admin/Desktop/emotionPet
-npm login --registry=https://registry.npmjs.org/
-npm whoami --registry=https://registry.npmjs.org/
-pnpm run verify
-npm publish --access public --registry=https://registry.npmjs.org/
-```
-
-以后修改代码时先递增版本号，再发布：
-
-```bash
-npm version patch --no-git-tag-version
-npm publish --access public --registry=https://registry.npmjs.org/
-```
-
-`prepublishOnly` 会在发布前自动执行类型检查、测试和构建；npm 包只包含构建后的 `lib/`、Bundle patch、README 和许可证，不包含源码或 `node_modules/`。
-
-## 验证命令
-
-```bash
-pnpm run check
-pnpm run test
-pnpm run build
-pnpm run verify
-pnpm run pack:plugin
-```
-
-## 许可
-
-Emotion Ball 原始引擎和表情数据并非 MIT 许可。本插件保留原项目的 `LICENSE`、`LICENSE-COMMERCIAL.md` 与署名，仅可用于个人学习、研究和非商业技术交流。商业使用前必须联系原作者 `1251579308@qq.com` 取得授权。
+Emotion Ball 使用仅供个人学习、研究和非商业技术交流的许可，并非 MIT 许可。本插件保留了原项目的 `LICENSE`、`LICENSE-COMMERCIAL.md` 和版权声明。商业使用前必须联系原作者取得商业授权，具体条款以随包提供的许可文件和原项目说明为准。
