@@ -4,6 +4,24 @@
 
 ## 安装
 
+### 用户从 npm 安装
+
+用户不需要这个项目的源码。安装已发布的 npm 包即可：
+
+```bash
+dsh plugin --profile web add dsh-emotion-pet
+dsh --profile web
+```
+
+升级到最新版本：
+
+```bash
+dsh plugin --profile web update dsh-emotion-pet --latest
+dsh --profile web
+```
+
+如果本机使用的是源码启动方式，把 `dsh` 替换为 `pnpm dsh`。
+
 先在插件目录完成构建：
 
 ```bash
@@ -41,6 +59,27 @@ pnpm dsh plugin --profile web add "C:/Users/admin/Desktop/emotionPet"
 ```bash
 pnpm dsh plugin --profile web remove dsh-emotion-pet
 ```
+
+### 发布者流程
+
+需要一个 npm 账号。首次发布前执行：
+
+```bash
+cd C:/Users/admin/Desktop/emotionPet
+npm login
+npm whoami
+pnpm run verify
+npm publish --access public
+```
+
+以后修改代码时先递增版本号，再发布：
+
+```bash
+npm version patch --no-git-tag-version
+npm publish --access public
+```
+
+`prepublishOnly` 会在发布前自动执行类型检查、测试和构建；npm 包只包含构建后的 `lib/`、Bundle patch、README 和许可证，不包含源码或 `node_modules/`。
 
 ## 验证命令
 

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Emotion Ball pet dock for the DeepSeek Harness Web composer",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
@@ -34,6 +37,7 @@
     "check": "tsc --noEmit",
     "test": "vitest run",
     "verify": "pnpm run check && pnpm run test && pnpm run build",
+    "prepublishOnly": "pnpm run verify",
     "pack:plugin": "pnpm run verify && pnpm pack"
   },
   "license": "SEE LICENSE IN LICENSE",
