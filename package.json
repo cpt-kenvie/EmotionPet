@@ -1,6 +1,6 @@
 {
   "name": "dsh-emotion-pet",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Emotion Ball pet dock for the DeepSeek Harness Web composer",
   "type": "module",
   "publishConfig": {
