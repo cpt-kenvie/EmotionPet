@@ -22,6 +22,8 @@ const THINKING_PHASE_MS = 4800
 const SEARCHING_PHASE_MS = 7500
 // 同一阶段轮换兼容表情的节奏，眼环动画仍由 Emotion Ball 引擎持续驱动。
 const EXPRESSION_CYCLE_MS = 3200
+// 对话中的小球加快兼容表情轮换，强化持续工作的状态感。
+const INLINE_EXPRESSION_CYCLE_MS = 1800
 const RECEIVING_EXPRESSION_CYCLE_MS = 800
 const WAKING_EXPRESSION_CYCLE_MS = 700
 const MISSING_EXPRESSION_CYCLE_MS = 900
@@ -181,10 +183,13 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
           ? PET_PRESENTATIONS.spacing
           : progressingState
     : progressingState
+  const inlineActive = petLocation === 'conversation' && turnStatusHost !== null
   const forcedState = ambientState.name === 'restricted' || ambientState.name === 'stopped'
     ? ambientState
     : null
-  const state = forcedState
+  const state = inlineActive
+    ? ambientState
+    : forcedState
     ?? (interaction !== null
       ? PET_PRESENTATIONS[interaction]
       : angry
@@ -198,7 +203,6 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     expressionIndex % state.alternateEmotions.length
   ] ?? state.emotion
   const useEmotionColor = followEmotion && FOLLOW_EMOTION_IDS.has(displayedEmotion)
-  const inlineActive = petLocation === 'conversation' && turnStatusHost !== null
 
   useEffect(() => {
     if (petLocation !== 'conversation') {
@@ -244,10 +248,10 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     }
     const handleVisibility = (): void => { engine.setActive(!document.hidden && !reducedMotion) }
 
-    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    if (!inlineActive) window.addEventListener('pointermove', handlePointerMove, { passive: true })
     document.addEventListener('visibilitychange', handleVisibility)
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
+      if (!inlineActive) window.removeEventListener('pointermove', handlePointerMove)
       document.removeEventListener('visibilitychange', handleVisibility)
       engine.destroy()
       engineRef.current = null
@@ -309,6 +313,8 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     if (variants === undefined || variants.length < 2) return
     const cycleMs = state.name === 'receiving'
       ? RECEIVING_EXPRESSION_CYCLE_MS
+      : inlineActive
+        ? INLINE_EXPRESSION_CYCLE_MS
       : state.name === 'waking'
         ? WAKING_EXPRESSION_CYCLE_MS
         : state.name === 'missing'
@@ -322,7 +328,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       })
     }, cycleMs)
     return () => { window.clearInterval(timer) }
-  }, [state.name, state.alternateEmotions])
+  }, [inlineActive, state.name, state.alternateEmotions])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -665,6 +671,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
           ref={inlinePetRef}
           className="emotionPet__inline"
           data-emotion-pet-inline
+          data-pet-state={state.name}
           aria-hidden="true"
         >
           <span ref={ballHostRef} className="emotionPet__ball" />

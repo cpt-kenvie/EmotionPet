@@ -36,6 +36,25 @@
   height: 24px;
 }
 
+.emotionPet__inline .emotionPet__ball {
+  transform-origin: 50% 75%;
+  animation: emotionPet-inline-busy 1.4s ease-in-out infinite;
+}
+
+@keyframes emotionPet-inline-busy {
+  0%, 100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  45% {
+    transform: translateY(-2px) rotate(2deg);
+  }
+
+  70% {
+    transform: translateY(-1px) rotate(0);
+  }
+}
+
 .emotionPet__row {
   position: relative;
   display: flex;
@@ -415,5 +434,9 @@
   .emotionPet__button,
   .emotionPet__switch::after {
     transition: none;
+  }
+
+  .emotionPet__inline .emotionPet__ball {
+    animation: none;
   }
 }

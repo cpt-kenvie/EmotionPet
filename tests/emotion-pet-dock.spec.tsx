@@ -114,18 +114,30 @@ describe('EmotionPetDock', () => {
         <div data-chat-flow>
           <div role="status">Deep diving...</div>
         </div>
-        <EmotionPetDock session={snapshot({ running: true })} input={{}} />
+        <EmotionPetDock session={snapshot({
+          running: true,
+          partial: { blocks: [{ kind: 'reasoning', text: '分析中' }] },
+        })} input={{}} />
       </div>,
     )
     const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+    for (let index = 0; index < 5; index += 1) fireEvent.click(pet)
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('angry')
 
     fireEvent.contextMenu(pet)
     fireEvent.click(screen.getByRole('menuitem', { name: '随对话' }))
 
     const status = screen.getByRole('status')
     expect(status.querySelector('[data-emotion-pet-inline]')).toBeTruthy()
+    expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('thinking')
     expect(window.localStorage.getItem('dsh-emotion-pet.location')).toBe('conversation')
     expect(screen.queryByRole('button', { name: '摸摸情绪宠物' })).toBeNull()
+    setGaze.mockClear()
+    fireEvent.pointerMove(window, { clientX: 10, clientY: 10 })
+    expect(setGaze).not.toHaveBeenCalled()
+
+    act(() => { vi.advanceTimersByTime(1800) })
+    expect(setEmotion).toHaveBeenCalledWith('37', { auto: true })
 
     status.remove()
     await act(async () => { await Promise.resolve() })
