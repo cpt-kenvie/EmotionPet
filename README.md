@@ -30,11 +30,11 @@ Emotion Pet 是一个陪伴 DeepSeek Harness Web 会话的动态宠物插件，�
 
 ## 使用前提
 
-- 已安装 DeepSeek Harness
-- 可以在终端中使用 `dsh` 命令
+- 已安装 DeepSeek Harness，或已安装 [DSH Desktop](https://github.com/anywhere-labs/deepseek-harness-desktop)
+- 浏览器版可以在终端中使用 `dsh` 命令；桌面版可以从系统托盘打开 **Open DSH Terminal**
 - 使用包含 Web 界面的 Profile，例如默认的 `web`
 
-## 安装
+## 在 DeepSeek Harness Web 中使用
 
 将插件安装到默认 Web Profile：
 
@@ -49,6 +49,35 @@ dsh --profile web
 ```
 
 终端显示 `dsh web:` 地址后，在浏览器中打开该地址。宠物会出现在会话输入框正上方。
+
+## 在 DSH Desktop 中使用
+
+[DSH Desktop](https://github.com/anywhere-labs/deepseek-harness-desktop) 的 Electron 窗口加载的是本机 DeepSeek Harness Web 界面，并沿用相同的插件系统，因此 Emotion Pet 不需要桌面端专用版本。当前插件可在 Desktop 的兼容模式和高级模式中使用。
+
+推荐从 DSH Desktop 系统托盘选择 **Open DSH Terminal**。该终端会显示当前激活的 Profile，以下命令默认安装到这个 Profile：
+
+```bash
+dsh plugin add dsh-emotion-pet
+```
+
+如果电脑已经另行安装了 `dsh`，也可以在普通系统终端中显式指定 Desktop Profile：
+
+```bash
+dsh plugin --profile desktop add dsh-emotion-pet
+```
+
+如果托盘中选择的是其他自定义 Profile，请将 `desktop` 替换成终端欢迎信息中显示的实际名称。各 Profile 的插件不会自动同步，安装到 `web` Profile 不代表已经安装到 Desktop 当前使用的 Profile。
+
+安装、更新或移除插件后，需要从托盘选择 **退出**，再重新启动 DSH Desktop。仅关闭窗口通常只是把应用隐藏到托盘，不会重新加载插件。
+
+Emotion Pet 的形状、颜色、“跟随表情”和“随对话”设置保存在浏览器 `localStorage` 中。Desktop 默认使用随机本地端口，重启后 origin 可能变化；如需稳定保留这些设置，建议在 DSH Desktop 设置中配置一个未占用的固定端口：
+
+```yaml
+dsh-desktop:
+  port: 43189
+```
+
+端口可以替换为其他 `1` 到 `65535` 之间的未占用端口。修改端口后 Desktop 会重启，服务仍只监听本机 `127.0.0.1`。
 
 ## 互动方式
 
@@ -72,6 +101,12 @@ dsh --profile web
 dsh plugin --profile web update dsh-emotion-pet --latest
 ```
 
+在 DSH Desktop 内置终端中，可更新当前激活 Profile：
+
+```bash
+dsh plugin update dsh-emotion-pet --latest
+```
+
 更新后重启 Web Profile，并在浏览器中刷新页面：
 
 ```bash
@@ -84,6 +119,12 @@ dsh web
 
 ```bash
 dsh plugin --profile web remove dsh-emotion-pet
+```
+
+在 DSH Desktop 内置终端中，可从当前激活 Profile 移除：
+
+```bash
+dsh plugin remove dsh-emotion-pet
 ```
 
 重启对应 Profile 后，插件会从 Web 界面移除。
@@ -99,6 +140,8 @@ dsh --profile web --dump-config
 ```
 
 输出中应包含 `dsh-emotion-pet`。然后重启 Profile，并强制刷新浏览器页面。
+
+在 DSH Desktop 中，请先确认托盘当前选择的 Profile 与安装目标一致，并从托盘完整退出后重新启动。若命令行找不到 `dsh`，应使用托盘中的 **Open DSH Terminal**，因为 Desktop 的私有命令不会写入系统全局 `PATH`。
 
 ### 页面地址暂时无法访问
 
