@@ -103,3 +103,7 @@ dsh --profile web --dump-config
 本插件的表情、表情配置数据和 SVG 动画引擎来自 [sam70361/emotion-ball](https://github.com/sam70361/emotion-ball)，原项目版权归 `sam70361` 所有。
 
 Emotion Ball 使用仅供个人学习、研究和非商业技术交流的许可，并非 MIT 许可。本插件保留了原项目的 `LICENSE`、`LICENSE-COMMERCIAL.md` 和版权声明。商业使用前必须联系原作者取得商业授权，具体条款以随包提供的许可文件和原项目说明为准。
+
+## 社区
+
+<a href="https://linux.do/"><img src="assets/linux-do-logo.svg" alt="LinuxDo" width="24" height="24" align="center"> LinuxDo</a>
