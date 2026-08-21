@@ -116,6 +116,7 @@
 }
 
 .emotionPet__menu > button,
+.emotionPet__menu > a,
 .emotionPet__submenuTrigger {
   display: flex;
   align-items: center;
@@ -129,12 +130,15 @@
   color: var(--dsw-alias-label-primary);
   font-size: 13px;
   line-height: 20px;
+  text-decoration: none;
   text-align: left;
   cursor: pointer;
 }
 
 .emotionPet__menu > button:hover,
+.emotionPet__menu > a:hover,
 .emotionPet__menu > button:focus-visible,
+.emotionPet__menu > a:focus-visible,
 .emotionPet__submenuTrigger:hover,
 .emotionPet__submenuTrigger:focus-visible {
   background: var(--dsw-alias-interactive-bg-hover);
@@ -170,8 +174,24 @@
   box-shadow: 0 8px 24px var(--dsw-alias-bg-mask-2);
 }
 
+.emotionPet__aboutPanel {
+  position: absolute;
+  z-index: 1;
+  left: calc(100% + 5px);
+  bottom: 0;
+  display: grid;
+  box-sizing: border-box;
+  width: 220px;
+  padding: 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: 0 8px 24px var(--dsw-alias-bg-mask-2);
+}
+
 /* 填补主菜单与二级菜单之间的悬停间隙，避免移动指针时菜单意外关闭。 */
-.emotionPet__appearancePanel::before {
+.emotionPet__appearancePanel::before,
+.emotionPet__aboutPanel::before {
   position: absolute;
   top: 0;
   right: 100%;
@@ -180,7 +200,45 @@
   content: '';
 }
 
-.emotionPet__menu .emotionPet__followToggle {
+.emotionPet__aboutIntro {
+  display: grid;
+  gap: 3px;
+  padding: 3px 5px 8px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.emotionPet__aboutIntro strong {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.emotionPet__aboutIntro span {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.emotionPet__aboutPanel > a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: none;
+}
+
+.emotionPet__aboutPanel > a:hover,
+.emotionPet__aboutPanel > a:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.emotionPet__menu .emotionPet__followToggle,
+.emotionPet__menu .emotionPet__toggleItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -197,7 +255,9 @@
 }
 
 .emotionPet__menu .emotionPet__followToggle:hover,
-.emotionPet__menu .emotionPet__followToggle:focus-visible {
+.emotionPet__menu .emotionPet__followToggle:focus-visible,
+.emotionPet__menu .emotionPet__toggleItem:hover,
+.emotionPet__menu .emotionPet__toggleItem:focus-visible {
   background: var(--dsw-alias-interactive-bg-hover);
   outline: none;
 }

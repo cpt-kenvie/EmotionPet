@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  ChevronRight, Circle, Cookie, Diamond, Gamepad2, MessageCircle, Moon, Palette, Sun,
-  Triangle,
+  ChevronRight, Circle, Cookie, Diamond, Gamepad2, Github, Info, Moon, Palette, Sun, Triangle,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -37,6 +36,8 @@ const SHAPE_STORAGE_KEY = 'dsh-emotion-pet.shape'
 const COLOR_STORAGE_KEY = 'dsh-emotion-pet.color'
 const FOLLOW_EMOTION_STORAGE_KEY = 'dsh-emotion-pet.followEmotion'
 const LOCATION_STORAGE_KEY = 'dsh-emotion-pet.location'
+// “关于”菜单固定指向插件的开源项目主页。
+const PROJECT_URL = 'https://github.com/cpt-kenvie/EmotionPet'
 // 未保存颜色时沿用 Emotion Ball 的默认体色。
 const DEFAULT_PET_COLOR = '#F3F0EA'
 // 仅这些表情需要临时覆盖用户选择的基础颜色。
@@ -134,6 +135,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const inlinePetRef = useRef<HTMLSpanElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const appearanceButtonRef = useRef<HTMLButtonElement>(null)
+  const aboutButtonRef = useRef<HTMLButtonElement>(null)
   const engineRef = useRef<EmotionBallInstance | null>(null)
   const previousRunningRef = useRef(session.running)
   const interactionTimerRef = useRef<number | null>(null)
@@ -145,6 +147,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const [angry, setAngry] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [appearanceOpen, setAppearanceOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const [runningElapsedMs, setRunningElapsedMs] = useState(0)
   const [idleElapsedMs, setIdleElapsedMs] = useState(0)
@@ -344,6 +347,11 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
         appearanceButtonRef.current?.focus()
         return
       }
+      if (aboutOpen) {
+        setAboutOpen(false)
+        aboutButtonRef.current?.focus()
+        return
+      }
       setMenuOpen(false)
       petButtonRef.current?.focus()
     }
@@ -353,7 +361,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [appearanceOpen, menuOpen])
+  }, [aboutOpen, appearanceOpen, menuOpen])
 
   useEffect(() => {
     const wasRunning = previousRunningRef.current
@@ -467,6 +475,7 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
 
   const openMenu = (): void => {
     setAppearanceOpen(false)
+    setAboutOpen(false)
     setMenuOpen(true)
   }
 
@@ -542,14 +551,24 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
               {sleeping || ambientState.name === 'hibernating' ? '唤醒' : '休息'}
             </button>
             <div className="emotionPet__menuDivider" aria-hidden="true" />
-            <button type="button" role="menuitem" onClick={handleLocationToggle}>
-              <MessageCircle size={16} aria-hidden="true" />
-              {petLocation === 'conversation' ? '回输入区' : '随对话'}
+            <button
+              type="button"
+              className="emotionPet__toggleItem"
+              role="menuitemcheckbox"
+              aria-checked={petLocation === 'conversation'}
+              onClick={handleLocationToggle}
+            >
+              随对话
+              <span
+                className="emotionPet__switch"
+                data-checked={petLocation === 'conversation'}
+                aria-hidden="true"
+              />
             </button>
             <div
               className="emotionPet__submenuHost"
               role="none"
-              onPointerEnter={() => { setAppearanceOpen(true) }}
+              onPointerEnter={() => { setAboutOpen(false); setAppearanceOpen(true) }}
               onPointerLeave={(event) => {
                 if (!event.currentTarget.contains(document.activeElement)) setAppearanceOpen(false)
               }}
@@ -565,9 +584,12 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
                 role="menuitem"
                 aria-haspopup="menu"
                 aria-expanded={appearanceOpen}
-                onClick={() => { setAppearanceOpen(true) }}
+                onClick={() => { setAboutOpen(false); setAppearanceOpen(true) }}
                 onKeyDown={(event) => {
-                  if (event.key === 'ArrowRight') setAppearanceOpen(true)
+                  if (event.key === 'ArrowRight') {
+                    setAboutOpen(false)
+                    setAppearanceOpen(true)
+                  }
                 }}
               >
                 <Palette size={16} aria-hidden="true" />
@@ -652,6 +674,67 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
                       </label>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+            <div className="emotionPet__menuDivider" aria-hidden="true" />
+            <div
+              className="emotionPet__submenuHost"
+              role="none"
+              onPointerEnter={() => { setAppearanceOpen(false); setAboutOpen(true) }}
+              onPointerLeave={(event) => {
+                if (!event.currentTarget.contains(document.activeElement)) setAboutOpen(false)
+              }}
+              onBlur={(event) => {
+                if (!(event.relatedTarget instanceof Node)
+                  || !event.currentTarget.contains(event.relatedTarget)) setAboutOpen(false)
+              }}
+            >
+              <button
+                ref={aboutButtonRef}
+                type="button"
+                className="emotionPet__submenuTrigger"
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={aboutOpen}
+                onClick={() => { setAppearanceOpen(false); setAboutOpen(true) }}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowRight') {
+                    setAppearanceOpen(false)
+                    setAboutOpen(true)
+                  }
+                }}
+              >
+                <Info size={16} aria-hidden="true" />
+                关于
+                <ChevronRight size={14} className="emotionPet__appearanceChevron" aria-hidden="true" />
+              </button>
+              {aboutOpen && (
+                <div
+                  className="emotionPet__aboutPanel"
+                  role="menu"
+                  aria-label="关于 Emotion Pet"
+                  onKeyDown={(event) => {
+                    if (event.key !== 'ArrowLeft') return
+                    event.preventDefault()
+                    setAboutOpen(false)
+                    aboutButtonRef.current?.focus()
+                  }}
+                >
+                  <div className="emotionPet__aboutIntro" role="none">
+                    <strong>Emotion Pet</strong>
+                    <span>陪伴 DeepSeek Harness 工作的动态情绪宠物。</span>
+                  </div>
+                  <a
+                    role="menuitem"
+                    href={PROJECT_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => { setMenuOpen(false) }}
+                  >
+                    <Github size={16} aria-hidden="true" />
+                    开源地址
+                  </a>
                 </div>
               )}
             </div>

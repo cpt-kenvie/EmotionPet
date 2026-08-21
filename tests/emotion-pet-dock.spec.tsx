@@ -108,6 +108,21 @@ describe('EmotionPetDock', () => {
     expect(setEmotion).toHaveBeenCalledWith('05', { auto: true })
   })
 
+  it('悬停关于菜单显示介绍和开源地址', () => {
+    render(<EmotionPetDock session={snapshot()} input={{}} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: '摸摸情绪宠物' }))
+
+    const about = screen.getByRole('menuitem', { name: '关于' })
+    expect(screen.queryByRole('menu', { name: '关于 Emotion Pet' })).toBeNull()
+    fireEvent.pointerEnter(about.parentElement as HTMLElement)
+
+    expect(screen.getByText('陪伴 DeepSeek Harness 工作的动态情绪宠物。')).toBeTruthy()
+    const source = screen.getByRole('menuitem', { name: '开源地址' })
+    expect(source.getAttribute('href')).toBe('https://github.com/cpt-kenvie/EmotionPet')
+    expect(source.getAttribute('target')).toBe('_blank')
+    expect(source.getAttribute('rel')).toBe('noreferrer')
+  })
+
   it('可缩小到 Deep diving 状态行并在状态行消失后回到输入区', async () => {
     const { container } = render(
       <div data-conversation-scroll>
@@ -125,7 +140,9 @@ describe('EmotionPetDock', () => {
     expect(container.querySelector('[data-emotion-pet]')?.getAttribute('data-pet-state')).toBe('angry')
 
     fireEvent.contextMenu(pet)
-    fireEvent.click(screen.getByRole('menuitem', { name: '随对话' }))
+    const followConversation = screen.getByRole('menuitemcheckbox', { name: '随对话' })
+    expect(followConversation.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(followConversation)
 
     const status = screen.getByRole('status')
     expect(status.querySelector('[data-emotion-pet-inline]')).toBeTruthy()
