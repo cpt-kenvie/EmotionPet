@@ -12,6 +12,30 @@
   margin: 0 auto -2px;
 }
 
+.emotionPet__dock--inline {
+  display: none;
+}
+
+/* 对话运行状态出现时，小球进入状态行并随聊天内容一起滚动。 */
+.emotionPet__inline {
+  order: -1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+  color: initial;
+  -webkit-text-fill-color: initial;
+}
+
+.emotionPet__inline .emotionPet__ball,
+.emotionPet__inline .emotionPet__ball > svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
 .emotionPet__row {
   position: relative;
   display: flex;

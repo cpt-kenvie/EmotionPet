@@ -52,7 +52,7 @@ const clientBuild = await build({
   platform: 'browser',
   target: 'es2022',
   jsx: 'automatic',
-  external: ['react', 'react/jsx-runtime'],
+  external: ['react', 'react-dom', 'react/jsx-runtime'],
   legalComments: 'inline',
   plugins: [cssPlugin],
 })

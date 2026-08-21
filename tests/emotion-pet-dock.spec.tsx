@@ -108,6 +108,32 @@ describe('EmotionPetDock', () => {
     expect(setEmotion).toHaveBeenCalledWith('05', { auto: true })
   })
 
+  it('可缩小到 Deep diving 状态行并在状态行消失后回到输入区', async () => {
+    const { container } = render(
+      <div data-conversation-scroll>
+        <div data-chat-flow>
+          <div role="status">Deep diving...</div>
+        </div>
+        <EmotionPetDock session={snapshot({ running: true })} input={{}} />
+      </div>,
+    )
+    const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })
+
+    fireEvent.contextMenu(pet)
+    fireEvent.click(screen.getByRole('menuitem', { name: '随对话' }))
+
+    const status = screen.getByRole('status')
+    expect(status.querySelector('[data-emotion-pet-inline]')).toBeTruthy()
+    expect(window.localStorage.getItem('dsh-emotion-pet.location')).toBe('conversation')
+    expect(screen.queryByRole('button', { name: '摸摸情绪宠物' })).toBeNull()
+
+    status.remove()
+    await act(async () => { await Promise.resolve() })
+
+    expect(container.querySelector('[data-emotion-pet-inline]')).toBeNull()
+    expect(screen.getByRole('button', { name: '摸摸情绪宠物' })).toBeTruthy()
+  })
+
   it('右键菜单支持切换形状和颜色并保存设置', () => {
     render(<EmotionPetDock session={snapshot()} input={{}} />)
     const pet = screen.getByRole('button', { name: '摸摸情绪宠物' })

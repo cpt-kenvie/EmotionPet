@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  ChevronRight, Circle, Cookie, Diamond, Gamepad2, Moon, Palette, Sun, Triangle,
+  ChevronRight, Circle, Cookie, Diamond, Gamepad2, MessageCircle, Moon, Palette, Sun,
+  Triangle,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -32,6 +34,7 @@ const IDLE_TICK_MS = 500
 const SHAPE_STORAGE_KEY = 'dsh-emotion-pet.shape'
 const COLOR_STORAGE_KEY = 'dsh-emotion-pet.color'
 const FOLLOW_EMOTION_STORAGE_KEY = 'dsh-emotion-pet.followEmotion'
+const LOCATION_STORAGE_KEY = 'dsh-emotion-pet.location'
 // 未保存颜色时沿用 Emotion Ball 的默认体色。
 const DEFAULT_PET_COLOR = '#F3F0EA'
 // 仅这些表情需要临时覆盖用户选择的基础颜色。
@@ -66,6 +69,7 @@ const PET_COLORS: readonly PetColorOption[] = [
 ]
 
 type TemporaryInteraction = 'happy' | 'satisfied' | 'playing' | 'waking'
+type PetLocation = 'input' | 'conversation'
 
 function isPetShape(value: string | null): value is PetShape {
   return value === 'blob' || value === 'wedge' || value === 'gem'
@@ -100,6 +104,17 @@ function readStoredFollowEmotion(): boolean {
   }
 }
 
+function readStoredLocation(): PetLocation {
+  try {
+    return window.localStorage.getItem(LOCATION_STORAGE_KEY) === 'conversation'
+      ? 'conversation'
+      : 'input'
+  } catch {
+    // 无法读取本地存储时保留输入区中的默认位置。
+    return 'input'
+  }
+}
+
 function storeAppearance(key: string, value: string | null): void {
   try {
     if (value === null) window.localStorage.removeItem(key)
@@ -111,8 +126,10 @@ function storeAppearance(key: string, value: string | null): void {
 
 /** 情绪宠物在输入框上方的常驻展示。 */
 export function EmotionPetDock({ session }: EmotionPetDockProps) {
+  const dockRef = useRef<HTMLElement>(null)
   const ballHostRef = useRef<HTMLDivElement>(null)
   const petButtonRef = useRef<HTMLButtonElement>(null)
+  const inlinePetRef = useRef<HTMLSpanElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const appearanceButtonRef = useRef<HTMLButtonElement>(null)
   const engineRef = useRef<EmotionBallInstance | null>(null)
@@ -134,6 +151,8 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
   const [petShape, setPetShape] = useState<PetShape>(readStoredShape)
   const [petColor, setPetColor] = useState(readStoredColor)
   const [followEmotion, setFollowEmotion] = useState(readStoredFollowEmotion)
+  const [petLocation, setPetLocation] = useState<PetLocation>(readStoredLocation)
+  const [turnStatusHost, setTurnStatusHost] = useState<HTMLElement | null>(null)
 
   const liveState = useMemo(() => derivePetState(session), [session])
   const missingEventKey = `${session.promptError?.op ?? ''}|${session.lastAgentError ?? ''}|${
@@ -179,6 +198,25 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     expressionIndex % state.alternateEmotions.length
   ] ?? state.emotion
   const useEmotionColor = followEmotion && FOLLOW_EMOTION_IDS.has(displayedEmotion)
+  const inlineActive = petLocation === 'conversation' && turnStatusHost !== null
+
+  useEffect(() => {
+    if (petLocation !== 'conversation') {
+      setTurnStatusHost(null)
+      return
+    }
+
+    const conversation = dockRef.current?.closest<HTMLElement>('[data-conversation-scroll]')
+    if (conversation === undefined || conversation === null) return
+    const updateHost = (): void => {
+      const next = conversation.querySelector<HTMLElement>('[data-chat-flow] > [role="status"]')
+      setTurnStatusHost(current => current === next ? current : next)
+    }
+    updateHost()
+    const observer = new MutationObserver(updateHost)
+    observer.observe(conversation, { childList: true, subtree: true })
+    return () => { observer.disconnect() }
+  }, [petLocation])
 
   useEffect(() => {
     const host = ballHostRef.current
@@ -197,9 +235,9 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     engineRef.current = engine
 
     const handlePointerMove = (event: PointerEvent): void => {
-      const button = petButtonRef.current
-      if (button === null) return
-      const rect = button.getBoundingClientRect()
+      const surface = inlinePetRef.current ?? petButtonRef.current
+      if (surface === null) return
+      const rect = surface.getBoundingClientRect()
       const x = (event.clientX - (rect.left + rect.width / 2)) / Math.max(rect.width / 2, 1)
       const y = (event.clientY - (rect.top + rect.height / 2)) / Math.max(rect.height / 2, 1)
       engine.setGaze(x, y)
@@ -214,11 +252,11 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
       engine.destroy()
       engineRef.current = null
     }
-  }, [petShape])
+  }, [inlineActive, petShape, turnStatusHost])
 
   useEffect(() => {
     engineRef.current?.setTheme(useEmotionColor ? null : petColor, '#1A1A1A')
-  }, [petColor, petShape, useEmotionColor])
+  }, [inlineActive, petColor, petShape, turnStatusHost, useEmotionColor])
 
   useEffect(() => {
     engineRef.current?.setEmotion(displayedEmotion, { auto: true })
@@ -444,30 +482,45 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
     })
   }
 
+  const handleLocationToggle = (): void => {
+    setMenuOpen(false)
+    setPetLocation(current => {
+      const next = current === 'input' ? 'conversation' : 'input'
+      storeAppearance(LOCATION_STORAGE_KEY, next)
+      return next
+    })
+  }
+
   return (
-    <section className="emotionPet__dock" data-emotion-pet data-pet-state={state.name}>
-      <div className="emotionPet__row">
-        <button
-          ref={petButtonRef}
-          type="button"
-          className="emotionPet__button"
-          onClick={handlePat}
-          onContextMenu={(event) => { event.preventDefault(); openMenu() }}
-          onKeyDown={(event) => {
-            if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
-              event.preventDefault()
-              openMenu()
-            }
-          }}
-          aria-label="摸摸情绪宠物"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          title="情绪宠物"
-        >
-          <span ref={ballHostRef} className="emotionPet__ball" aria-hidden="true" />
-        </button>
-        {menuOpen && (
-          <div ref={menuRef} className="emotionPet__menu" role="menu" aria-label="宠物互动">
+    <>
+      <section
+        ref={dockRef}
+        className={`emotionPet__dock${inlineActive ? ' emotionPet__dock--inline' : ''}`}
+        data-emotion-pet
+        data-pet-state={state.name}
+      >
+        {!inlineActive && <div className="emotionPet__row">
+          <button
+            ref={petButtonRef}
+            type="button"
+            className="emotionPet__button"
+            onClick={handlePat}
+            onContextMenu={(event) => { event.preventDefault(); openMenu() }}
+            onKeyDown={(event) => {
+              if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+                event.preventDefault()
+                openMenu()
+              }
+            }}
+            aria-label="摸摸情绪宠物"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title="情绪宠物"
+          >
+            <span ref={ballHostRef} className="emotionPet__ball" aria-hidden="true" />
+          </button>
+          {menuOpen && (
+            <div ref={menuRef} className="emotionPet__menu" role="menu" aria-label="宠物互动">
             <button type="button" role="menuitem" onClick={handleFeed}>
               <Cookie size={16} aria-hidden="true" />
               投喂
@@ -483,6 +536,10 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
               {sleeping || ambientState.name === 'hibernating' ? '唤醒' : '休息'}
             </button>
             <div className="emotionPet__menuDivider" aria-hidden="true" />
+            <button type="button" role="menuitem" onClick={handleLocationToggle}>
+              <MessageCircle size={16} aria-hidden="true" />
+              {petLocation === 'conversation' ? '回输入区' : '随对话'}
+            </button>
             <div
               className="emotionPet__submenuHost"
               role="none"
@@ -592,17 +649,29 @@ export function EmotionPetDock({ session }: EmotionPetDockProps) {
                 </div>
               )}
             </div>
+            </div>
+          )}
+          <div className="emotionPet__bubble" aria-live="polite" aria-atomic="true">
+            <span className="emotionPet__status">
+              <i className="emotionPet__dot" data-tone={state.tone} aria-hidden="true" />
+              {state.label}
+            </span>
+            <span className="emotionPet__speech">{state.speech}</span>
           </div>
-        )}
-        <div className="emotionPet__bubble" aria-live="polite" aria-atomic="true">
-          <span className="emotionPet__status">
-            <i className="emotionPet__dot" data-tone={state.tone} aria-hidden="true" />
-            {state.label}
-          </span>
-          <span className="emotionPet__speech">{state.speech}</span>
-        </div>
-      </div>
-    </section>
+        </div>}
+      </section>
+      {inlineActive && createPortal(
+        <span
+          ref={inlinePetRef}
+          className="emotionPet__inline"
+          data-emotion-pet-inline
+          aria-hidden="true"
+        >
+          <span ref={ballHostRef} className="emotionPet__ball" />
+        </span>,
+        turnStatusHost,
+      )}
+    </>
   )
 }
 
